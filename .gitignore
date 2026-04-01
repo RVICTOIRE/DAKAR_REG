@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+*.manifest
+*.spec
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Installer
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Pyenv
+.python-version
+
+# PyCharm
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# Distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Streamlit
+.streamlit/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Database
+*.sqlite3
+
+# Excel exports
+*.xlsx
+*.xls
+*.csv
+
+# secrets
+.env
+.env.*
+
+# backups
+*.bak
+*~

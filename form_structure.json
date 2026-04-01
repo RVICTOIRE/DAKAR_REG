@@ -1,0 +1,420 @@
+{
+  "main_fields": [
+    {
+      "name": "group_nu8sp57",
+      "label": "Informations générales",
+      "fields": [
+        {
+          "type": "date",
+          "name": "date_rapport",
+          "label": "Date du rapport",
+          "required": true
+        },
+        {
+          "type": "select_one pu8hy42",
+          "name": "D_partement",
+          "label": "Département",
+          "required": true
+        },
+        {
+          "type": "select_one unite",
+          "name": "unite",
+          "label": "Unités communales",
+          "required": true
+        },
+        {
+          "type": "text",
+          "name": "responsable_uc",
+          "label": "Responsable UC",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "group_rr8mq19",
+      "label": "Personnel du matin",
+      "fields": [
+        {
+          "type": "select_one categorie",
+          "name": "categorie_apm_001",
+          "label": "Catégorie du personnel",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "effectif_apm",
+          "label": "Effectif total",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "present_apm_001",
+          "label": "Présents",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "absent_apm",
+          "label": "Absents",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "malade_apm",
+          "label": "Malades",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "reserve_apm",
+          "label": "Retard",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "conge_apm",
+          "label": "Congés",
+          "required": false
+        },
+        {
+          "type": "text",
+          "name": "observation_personnel_001",
+          "label": "Observations sur le personnel",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "group_eu7tr68",
+      "label": "Collecte-Généralités",
+      "fields": [
+        {
+          "type": "integer",
+          "name": "circuits_planifies",
+          "label": "Nombre de circuits planifiés",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "circuits_collectes",
+          "label": "Nombre de circuits collectés",
+          "required": false
+        },
+        {
+          "type": "decimal",
+          "name": "tonnage_total",
+          "label": "Tonnage total collecté (t)",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "depots_recurrents",
+          "label": "Dépôts récurrents identifiés",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "depots_recurrents_leves",
+          "label": "Dépôts récurrents levés",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "depots_sauvages",
+          "label": "Dépôts sauvages identifiés",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "depots_sauvages_traites",
+          "label": "Dépôts sauvages traités",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "group_wl43a78",
+      "label": "Collecte-caisses polybennes",
+      "fields": [
+        {
+          "type": "integer",
+          "name": "sites_caisse",
+          "label": "Nombre de sites de caisses",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "nb_caisses",
+          "label": "Nombre de caisses",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "caisses_levees",
+          "label": "Caisses levées",
+          "required": false
+        },
+        {
+          "type": "decimal",
+          "name": "poids_caisses",
+          "label": "Poids collecté caisses (t)",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "group_or03u90",
+      "label": "Nettoiement",
+      "fields": [
+        {
+          "type": "integer",
+          "name": "Nombre_de_circuits_planifi_s",
+          "label": "Nombre de circuits planifiés",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "circuits_balayage",
+          "label": "Nombre de ircuits balayés",
+          "required": false
+        },
+        {
+          "type": "decimal",
+          "name": "km_planifies",
+          "label": "Kilométrage planifié",
+          "required": false
+        },
+        {
+          "type": "decimal",
+          "name": "km_balayes",
+          "label": "Kilométrage balayé",
+          "required": false
+        },
+        {
+          "type": "decimal",
+          "name": "km_desensable",
+          "label": "Kilométrage désensablé",
+          "required": false
+        },
+        {
+          "type": "image",
+          "name": "photo_net",
+          "label": "Photo",
+          "required": false
+        },
+        {
+          "type": "geopoint",
+          "name": "gps_photo",
+          "label": "GPS photo",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "group_wi6jl55",
+      "label": "Difficultés et Recommandations",
+      "fields": [
+        {
+          "type": "select_multiple difficulte",
+          "name": "difficultes",
+          "label": "Difficultés",
+          "required": false
+        },
+        {
+          "type": "text",
+          "name": "autres_diff",
+          "label": "Autres difficultés",
+          "required": false
+        },
+        {
+          "type": "select_multiple recommandation",
+          "name": "recommandations",
+          "label": "Recommandations",
+          "required": false
+        },
+        {
+          "type": "text",
+          "name": "autres_rec",
+          "label": "Autres recommandations",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "repeat_groups": [
+    {
+      "name": "personnel_apm",
+      "label": "Personnel de l’après-midi",
+      "fields": [
+        {
+          "type": "select_one categorie",
+          "name": "categorie_apm",
+          "label": "Catégorie du personnel",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "effectif_apm_001",
+          "label": "Effectif total",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "present_apm",
+          "label": "Présents",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "absent_apm_001",
+          "label": "Absents",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "malade_apm_001",
+          "label": "Malades",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "conge_apm_001",
+          "label": "Congés",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "reserve_apm_002",
+          "label": "Retard",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "reserve_apm_001",
+          "label": "Retard",
+          "required": false
+        },
+        {
+          "type": "text",
+          "name": "observation_personnel",
+          "label": "Observations sur le personnel",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "circuits",
+      "label": "Collecte-Circuits",
+      "fields": [
+        {
+          "type": "text",
+          "name": "nom_circuit",
+          "label": "Nom du circuit",
+          "required": false
+        },
+        {
+          "type": "text",
+          "name": "camion",
+          "label": "Numéro du camion",
+          "required": false
+        },
+        {
+          "type": "select_one operateur",
+          "name": "operateur",
+          "label": "Concessionnaires",
+          "required": false
+        },
+        {
+          "type": "time",
+          "name": "heure_debut",
+          "label": "Heure début",
+          "required": false
+        },
+        {
+          "type": "time",
+          "name": "heure_fin",
+          "label": "Heure fin",
+          "required": false
+        },
+        {
+          "type": "decimal",
+          "name": "poids_circuit",
+          "label": "Poids collecté (t)",
+          "required": false
+        },
+        {
+          "type": "select_one statut",
+          "name": "statut",
+          "label": "Statut du circuit",
+          "required": false
+        },
+        {
+          "type": "text",
+          "name": "observation_circuit",
+          "label": "Observation",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "mobilier",
+      "label": "Mobilier urbain",
+      "fields": [
+        {
+          "type": "select_one type_mobilier",
+          "name": "type_mobilier",
+          "label": "Type de mobilier",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "nb_sites",
+          "label": "Nombre de sites",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "nb_bacs",
+          "label": "Nombre de bacs",
+          "required": false
+        },
+        {
+          "type": "integer",
+          "name": "bacs_leves",
+          "label": "Nombre de bacs levés",
+          "required": false
+        },
+        {
+          "type": "select_one wc06y38",
+          "name": "Observation",
+          "label": "Observation",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "photos_interv",
+      "label": "Photos interventions",
+      "fields": [
+        {
+          "type": "image",
+          "name": "photo_int",
+          "label": "Photo",
+          "required": false
+        },
+        {
+          "type": "text",
+          "name": "desc_int",
+          "label": "Description",
+          "required": false
+        },
+        {
+          "type": "geopoint",
+          "name": "gps_int",
+          "label": "GPS",
+          "required": false
+        }
+      ]
+    }
+  ]
+}
