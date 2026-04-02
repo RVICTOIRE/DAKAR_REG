@@ -1,0 +1,61 @@
+name: 🔄 Synchroniser données Kobo
+
+on:
+  # Déclencher toutes les 12 heures
+  schedule:
+    - cron: '0 */12 * * *'  # À 00:00 et 12:00 UTC
+  
+  # Permettre de déclencher manuellement depuis GitHub UI
+  workflow_dispatch:
+
+jobs:
+  sync-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Cloner le repository
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Installer Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: 📦 Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: 🔗 Importer les données depuis Kobo API
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "📊 Import depuis Kobo..."
+          python import_kobo_via_api.py
+      
+      - name: 🔄 Transformer les données (RAW → MART)
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "🔄 Transformation en cours..."
+          python transform_raw_to_mart.py
+      
+      - name: ✅ Succès - Données synchronisées
+        if: success()
+        run: |
+          echo "🎉 Pipeline réussi: Kobo → RAW → MART"
+          echo "$(date)" >> sync_log.txt
+      
+      - name: ❌ Erreur - Pipeline échoué
+        if: failure()
+        run: |
+          echo "⚠️ Erreur lors de la synchronisation"
+          exit 1
