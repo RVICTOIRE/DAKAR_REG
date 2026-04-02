@@ -803,16 +803,20 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, HRFlowable
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from io import BytesIO
 from datetime import datetime
 
-
-def generate_period_report_pdf(period_label, start_date, end_date, df_data=None):
-    """Génère un rapport PDF stylisé pour la SONAGED (Unité Médina)."""
+def generate_period_report_pdf(period_label, uc_name, start_date, end_date, df_data=None):
+    """
+    Génère un rapport PDF stylisé et dynamique pour la SONAGED.
+    :param period_label: 'Journalier', 'Hebdomadaire' ou 'Mensuel'
+    :param uc_name: Nom de l'Unité Communale (ex: 'Medina', 'Plateau')
+    :param start_date: Objet datetime (début)
+    :param end_date: Objet datetime (fin)
+    """
     
     pdf_buffer = BytesIO()
-    # Marges plus élégantes
     doc = SimpleDocTemplate(
         pdf_buffer, 
         pagesize=A4, 
@@ -825,170 +829,148 @@ def generate_period_report_pdf(period_label, start_date, end_date, df_data=None)
 
     # --- CONFIGURATION DES STYLES ---
     styles = getSampleStyleSheet()
-    
-    # Couleurs thématiques
-    PRIMARY_BLUE = colors.HexColor("#102C57") # Bleu Marine Institutionnel
-    ACCENT_GOLD = colors.HexColor("#FEBB02")  # Or/Jaune SONAGED
+    PRIMARY_BLUE = colors.HexColor("#102C57") 
+    ACCENT_GOLD = colors.HexColor("#FEBB02")
     LIGHT_GREY = colors.HexColor("#F1F1F1")
     BORDER_COLOR = colors.HexColor("#D1D5DB")
 
+    header_mini = ParagraphStyle("HeaderMini", fontSize=8, alignment=TA_CENTER, leading=10, fontName="Helvetica-Bold")
+    
     title_style = ParagraphStyle(
         "TitleStyle", parent=styles["Title"], 
-        fontSize=18, alignment=TA_CENTER, 
-        textColor=PRIMARY_BLUE, spaceAfter=20, fontName="Helvetica-Bold"
-    )
-    
-    header_style = ParagraphStyle(
-        "HeaderStyle", fontSize=9, alignment=TA_CENTER, 
-        leading=11, textColor=colors.black, fontName="Helvetica-Bold"
+        fontSize=16, alignment=TA_CENTER, 
+        textColor=PRIMARY_BLUE, spaceAfter=12, fontName="Helvetica-Bold"
     )
     
     section_style = ParagraphStyle(
         "SectionStyle", parent=styles["Heading2"], 
-        fontSize=12, alignment=TA_LEFT, 
-        textColor=PRIMARY_BLUE, spaceBefore=15, spaceAfter=10,
-        fontName="Helvetica-Bold", borderPadding=5,
+        fontSize=11, alignment=TA_LEFT, 
+        textColor=PRIMARY_BLUE, spaceBefore=12, spaceAfter=8,
+        fontName="Helvetica-Bold"
     )
 
-    normal_style = ParagraphStyle("NormalStyle", fontSize=9, leading=12)
-    obs_style = ParagraphStyle("ObsStyle", fontSize=8, leading=10, leftIndent=10, italic=True)
+    normal_style = ParagraphStyle("NormalStyle", fontSize=9, leading=11)
 
-    # --- ENTÊTE INSTITUTIONNEL ---
-    elements.append(Paragraph("REPUBLIQUE DU SENEGAL", header_style))
-    elements.append(Paragraph("MINISTERE DE L'URBANISME, DES COLLECTIVITES TERRITORIALES<br/>ET DE L'AMENAGEMENT DES TERRITOIRES", header_style))
+    # --- 1. ENTÊTE INSTITUTIONNEL ---
+    elements.append(Paragraph("REPUBLIQUE DU SENEGAL", header_mini))
+    elements.append(Paragraph("MINISTERE DE L'URBANISME, DES COLLECTIVITES TERRITORIALES<br/>ET DE L'AMENAGEMENT DES TERRITOIRES", header_mini))
+    elements.append(Spacer(1, 0.05*inch))
+    elements.append(HRFlowable(width="20%", thickness=0.7, color=PRIMARY_BLUE))
+    elements.append(Spacer(1, 0.05*inch))
+    elements.append(Paragraph("Société Nationale de la Gestion Intégrée des Déchets (SONAGED)", header_mini))
+    
+    elements.append(Spacer(1, 0.25*inch))
+    
+    # --- 2. TITRE DYNAMIQUE ---
+    # Le titre s'adapte selon les paramètres period_label et uc_name
+    titre_dynamique = f"RAPPORT {period_label.upper()} : UNITE COMMUNALE {uc_name.upper()}"
+    elements.append(Paragraph(titre_dynamique, title_style))
+    
+    # Ligne d'infos (Date et Période)
+    date_str = datetime.now().strftime("%d/%m/%Y")
+    period_str = f"{start_date.strftime('%d/%m/%Y')} au {end_date.strftime('%d/%m/%Y')}"
+    
+    meta_data = [[f"DATE D'EDITION : {date_str}", f"PERIODE : {period_str}"]]
+    t_meta = Table(meta_data, colWidths=[3.5*inch, 3.5*inch])
+    t_meta.setStyle(TableStyle([
+        ('FONTNAME', (0,0), (-1,-1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 9),
+        ('ALIGN', (0,0), (0,0), 'LEFT'),
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
+    ]))
+    elements.append(t_meta)
     elements.append(Spacer(1, 0.1*inch))
-    elements.append(HRFlowable(width="30%", thickness=1, color=PRIMARY_BLUE))
-    elements.append(Spacer(1, 0.1*inch))
-    elements.append(Paragraph("Société Nationale de la Gestion Intégrée des Déchets (SONAGED)", header_style))
-    
-    elements.append(Spacer(1, 0.3*inch))
-    
-    # Titre du Rapport avec badge de date
-    elements.append(Paragraph(f"RAPPORT JOURNALIER : UNITE MEDINA", title_style))
-    
-    # Infos de période dans un petit tableau pour le style
-    info_data = [
-        [Paragraph(f"<b>PÉRIODE :</b> {start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')}", normal_style),
-         Paragraph(f"<b>GÉNÉRÉ LE :</b> {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style)]
-    ]
-    info_table = Table(info_data, colWidths=[3.5*inch, 3.5*inch])
-    info_table.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'LEFT')]))
-    elements.append(info_table)
-    elements.append(Spacer(1, 0.2*inch))
+    elements.append(HRFlowable(width="100%", thickness=1.5, color=ACCENT_GOLD))
 
-    # --- 1. SITUATION DU PERSONNEL ---
-    elements.append(Paragraph("1. SITUATION DU PERSONNEL (MATIN)", section_style))
-    p1 = [
-        ["Personnel", "Effectif", "Présents", "Absents", "Malades", "Congés", "Repos"],
+    # --- 3. SECTION PERSONNEL ---
+    elements.append(Paragraph("I. SITUATION DU PERSONNEL", section_style))
+    data_p = [
+        ["Catégorie", "Effectif", "Présents", "Absents", "Malades", "Congés", "Repos"],
         ["Collecteurs", "22", "12", "0", "0", "4", "6"],
         ["Balayeurs", "75", "17", "0", "0", "4", "0"],
-        ["AP de site", "8", "1", "0", "0", "0", "7"],
+        ["Agents de Site", "8", "1", "0", "0", "0", "7"],
         ["Superviseurs", "5", "5", "0", "0", "0", "0"],
-        ["Encadrement", "3", "3", "0", "0", "0", "0"]
+        ["Encadrement", "3", "2", "0", "0", "0", "1"]
     ]
-    t1 = Table(p1, colWidths=[1.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch])
+    t1 = Table(data_p, colWidths=[1.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch])
     t1.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), PRIMARY_BLUE),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
         ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, LIGHT_GREY]),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, LIGHT_GREY])
     ]))
     elements.append(t1)
-    elements.append(Paragraph("<i>Note: 9 surveillants invalides affectés au balayage ne peuvent pas exercer.</i>", obs_style))
 
-    # --- 2. SITUATION DE LA COLLECTE ---
-    elements.append(Paragraph("2. SITUATION DE LA COLLECTE", section_style))
-    
-    # Tableau de synthèse rapide
-    col_summary = [
-        ["Circuits Planifiés", "9", "Tonnage Collecté", "42.86 T"],
-        ["Circuits Réalisés", "7", "Dépôts Sauvages", "Néant"]
+    # --- 4. SECTION COLLECTE ---
+    elements.append(Paragraph("II. ETAT DE LA COLLECTE", section_style))
+    data_c = [
+        ["Circuit", "Camion", "Début", "Fin", "Poids (T)", "Statut"],
+        ["Artères Principales", "9061A", "08:00", "12:30", "11.7", "Terminé"],
+        ["Zone Médina", "1704", "08:00", "14:30", "9.9", "Terminé"],
+        ["Dépôts Sauvages", "702", "09:00", "13:00", "5.2", "En cours"]
     ]
-    t_sum = Table(col_summary, colWidths=[1.8*inch, 1.2*inch, 1.8*inch, 1.2*inch])
-    t_sum.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (0,-1), LIGHT_GREY),
-        ('BACKGROUND', (2,0), (2,-1), LIGHT_GREY),
-        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
-        ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
-        ('GRID', (0,0), (-1,-1), 0.5, BORDER_COLOR),
-        ('ALIGN', (1,0), (1,-1), 'CENTER'),
-        ('ALIGN', (3,0), (3,-1), 'CENTER'),
-    ]))
-    elements.append(t_sum)
-    elements.append(Spacer(1, 0.15*inch))
-
-    # Détails des circuits
-    elements.append(Paragraph("Détail des rotations par circuit", normal_style))
-    p4 = [
-        ["Circuit", "Camion", "Début", "Fin", "Durée", "Poids (kg)", "Statut"],
-        ["Ecotra Artères", "9061A", "08:00", "12:30", "4:30", "11 700", "Terminé"],
-        ["Keur Khadim", "1704", "08:00", "14:30", "6:30", "9 920", "Terminé"],
-        ["Delta Medina", "202", "09:00", "13:00", "4:00", "5 560", "Partiel"],
-        ["Medina 2", "3701", "08:00", "10:30", "2:30", "---", "Panne"]
-    ]
-    t4 = Table(p4, colWidths=[1.5*inch, 0.8*inch, 0.7*inch, 0.7*inch, 0.7*inch, 1*inch, 1*inch])
-    t4.setStyle(TableStyle([
+    t2 = Table(data_c, colWidths=[2.2*inch, 1*inch, 0.8*inch, 0.8*inch, 1*inch, 1.2*inch])
+    t2.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2C3E50")),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTSIZE', (0, 0), (-1, -1), 8),
-        ('ALIGN', (2,0), (-1,-1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
     ]))
-    elements.append(t4)
+    elements.append(t2)
 
-    # --- 3. MOBILIER URBAIN (BACS) ---
-    elements.append(Paragraph("3. MOBILIER URBAIN & BACS", section_style))
-    p7 = [
-        ["Type de Mobilier", "Nombre Sites", "Total Bacs", "Bacs Levés", "Statut"],
-        ["Points de Regroupement", "4", "19", "19", "100%"],
-        ["Points Propres", "4", "19", "19", "100%"],
-        ["Bacs de rue", "8", "42", "42", "100%"]
+    # --- 5. SECTION MOBILIER URBAIN ---
+    elements.append(Paragraph("III. MOBILIER URBAIN (BACS)", section_style))
+    data_m = [
+        ["Type", "Nombre Total", "Levés", "Taux de réalisation"],
+        ["Points de Regroupement (PRN)", "19", "19", "100%"],
+        ["Points Propres (PP)", "19", "19", "100%"],
+        ["Bacs de rue", "42", "42", "100%"]
     ]
-    t7 = Table(p7, colWidths=[2*inch, 1.2*inch, 1.2*inch, 1.2*inch, 1.2*inch])
-    t7.setStyle(TableStyle([
+    t3 = Table(data_m, colWidths=[2.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+    t3.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), ACCENT_GOLD),
         ('TEXTCOLOR', (0, 0), (-1, 0), PRIMARY_BLUE),
-        ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
     ]))
-    elements.append(t7)
+    elements.append(t3)
 
-    # --- 4. DIFFICULTÉS & RECOMMANDATIONS ---
+    # --- 6. DIFFICULTÉS ET SOLUTIONS ---
     elements.append(Spacer(1, 0.2*inch))
-    
-    # On crée deux colonnes pour Difficultés et Recommandations
-    diff_data = [
-        [Paragraph("<b>⚠️ DIFFICULTÉS</b>", section_style), Paragraph("<b>💡 RECOMMANDATIONS</b>", section_style)],
-        [Paragraph("• Manque de matériel lourd<br/>• Effectifs réduits (invalidité)<br/>• Pannes mécaniques récurrentes", normal_style),
-         Paragraph("• Renforcer le personnel actif<br/>• Dotation urgente en EPI et tenues<br/>• Maintenance préventive des camions", normal_style)]
+    obs_data = [
+        [Paragraph("<b>DIFFICULTÉS RENCONTRÉES</b>", normal_style), Paragraph("<b>RECOMMANDATIONS / SOLUTIONS</b>", normal_style)],
+        [Paragraph("• 9 agents invalides au balayage.<br/>• Panne du camion 3701.", normal_style),
+         Paragraph("• Recrutement de renforts.<br/>• Maintenance urgente garage.", normal_style)]
     ]
-    t_diff = Table(diff_data, colWidths=[3.5*inch, 3.5*inch])
-    t_diff.setStyle(TableStyle([
+    t_obs = Table(obs_data, colWidths=[3.5*inch, 3.5*inch])
+    t_obs.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 20),
+        ('GRID', (0,0), (-1,-1), 0.5, BORDER_COLOR),
+        ('BACKGROUND', (0,0), (1,0), LIGHT_GREY),
+        ('PADDING', (0,0), (-1,-1), 8),
     ]))
-    elements.append(t_diff)
+    elements.append(t_obs)
 
-    # Pied de page (Signatures)
-    elements.append(Spacer(1, 0.5*inch))
-    sig_data = [["Le Responsable d'Unité (RUC)", "Le Superviseur de Zone"]]
-    t_sig = Table(sig_data, colWidths=[3.5*inch, 3.5*inch])
-    t_sig.setStyle(TableStyle([
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('FONTNAME', (0,0), (-1,-1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,-1), 10),
-    ]))
-    elements.append(t_sig)
+    # --- BAS DE PAGE ---
+    elements.append(Spacer(1, 0.4*inch))
+    elements.append(Paragraph("<i>Document généré automatiquement par le Système de Reporting SONAGED.</i>", 
+                              ParagraphStyle("Foot", fontSize=7, alignment=TA_CENTER, textColor=colors.grey)))
 
-    # Génération
+    # Construction du PDF
     doc.build(elements)
     pdf_buffer.seek(0)
     return pdf_buffer.getvalue()
+
+# --- EXEMPLE D'UTILISATION ---
+# from datetime import date
+# pdf = generate_period_report_pdf("Journalier", "Medina", date(2025,9,21), date(2025,9,21))
+# with open("rapport_stylé.pdf", "wb") as f:
+#     f.write(pdf)
 
 def get_circuits_non_termines(date_debut, date_fin):
     """
@@ -2307,7 +2289,11 @@ def main():
                     st.dataframe(df_period, use_container_width=True, hide_index=True)
 
                     # Export PDF Helado
-                    pdf_data = generate_period_report_pdf(report_type, start_date, end_date, df_period)
+                    # Récupérer l'unité communale sélectionnée
+                    uc_names = st.session_state.get('selected_unites_communales', ['Dakar'])
+                    uc_name = uc_names[0] if uc_names else 'Dakar'
+                    
+                    pdf_data = generate_period_report_pdf(report_type, uc_name, start_date, end_date, df_period)
                     st.download_button(
                         label=f"📄 Télécharger {report_type} (PDF)",
                         data=pdf_data,
