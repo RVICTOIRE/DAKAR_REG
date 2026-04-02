@@ -814,7 +814,10 @@ def generate_period_report_pdf(period_label, uc_name, start_date, end_date, df_d
     :param uc_name: Nom de l'Unité Communale (ex: 'Medina', 'Plateau')
     :param start_date: Objet datetime (début)
     :param end_date: Objet datetime (fin)
+    :param df_data: DataFrame avec les données journalières
     """
+    from utils.database import execute_query
+    from utils.queries import QUERY_CIRCUITS_DETAILS
     
     pdf_buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -862,7 +865,6 @@ def generate_period_report_pdf(period_label, uc_name, start_date, end_date, df_d
     elements.append(Spacer(1, 0.25*inch))
     
     # --- 2. TITRE DYNAMIQUE ---
-    # Le titre s'adapte selon les paramètres period_label et uc_name
     titre_dynamique = f"RAPPORT {period_label.upper()} : UNITE COMMUNALE {uc_name.upper()}"
     elements.append(Paragraph(titre_dynamique, title_style))
     
@@ -882,70 +884,115 @@ def generate_period_report_pdf(period_label, uc_name, start_date, end_date, df_d
     elements.append(Spacer(1, 0.1*inch))
     elements.append(HRFlowable(width="100%", thickness=1.5, color=ACCENT_GOLD))
 
-    # --- 3. SECTION PERSONNEL ---
-    elements.append(Paragraph("I. SITUATION DU PERSONNEL", section_style))
-    data_p = [
-        ["Catégorie", "Effectif", "Présents", "Absents", "Malades", "Congés", "Repos"],
-        ["Collecteurs", "22", "12", "0", "0", "4", "6"],
-        ["Balayeurs", "75", "17", "0", "0", "4", "0"],
-        ["Agents de Site", "8", "1", "0", "0", "0", "7"],
-        ["Superviseurs", "5", "5", "0", "0", "0", "0"],
-        ["Encadrement", "3", "2", "0", "0", "0", "1"]
+    # --- 3. SECTION COLLECTE : GENERALITES ---
+    elements.append(Paragraph("I. COLLECTE - GENERALITES", section_style))
+    
+    # Extraire les indicateurs du dataframe
+    if df_data is not None and not df_data.empty:
+        circuits_plan = int(df_data['circuits_planifies'].sum()) if 'circuits_planifies' in df_data.columns else 0
+        circuits_coll = int(df_data['circuits_collectes'].sum()) if 'circuits_collectes' in df_data.columns else 0
+        tonnage_total = round(df_data['tonnage_total'].sum(), 2) if 'tonnage_total' in df_data.columns else 0
+    else:
+        circuits_plan = 0
+        circuits_coll = 0
+        tonnage_total = 0
+    
+    data_collecte_gen = [
+        ["Indicateurs", "Valeur"],
+        ["Nombre Circuits planifiés", str(circuits_plan)],
+        ["Nombre de circuits collectés", str(circuits_coll)],
+        ["Tonnage collecté", str(tonnage_total)],
+        ["Nombre dépôts récurrents", "N/D"],
+        ["Dépôts récurrents levés", "N/D"],
+        ["Nombre dépôts sauvages identifiés", "N/D"],
+        ["Nombre dépôts sauvages traités", "N/D"]
     ]
-    t1 = Table(data_p, colWidths=[1.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch])
-    t1.setStyle(TableStyle([
+    t_coll_gen = Table(data_collecte_gen, colWidths=[3.5*inch, 3.5*inch])
+    t_coll_gen.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), PRIMARY_BLUE),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 8),
         ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, LIGHT_GREY])
     ]))
-    elements.append(t1)
+    elements.append(t_coll_gen)
+    elements.append(Spacer(1, 0.15*inch))
 
-    # --- 4. SECTION COLLECTE ---
-    elements.append(Paragraph("II. ETAT DE LA COLLECTE", section_style))
-    data_c = [
-        ["Circuit", "Camion", "Début", "Fin", "Poids (T)", "Statut"],
-        ["Artères Principales", "9061A", "08:00", "12:30", "11.7", "Terminé"],
-        ["Zone Médina", "1704", "08:00", "14:30", "9.9", "Terminé"],
-        ["Dépôts Sauvages", "702", "09:00", "13:00", "5.2", "En cours"]
-    ]
-    t2 = Table(data_c, colWidths=[2.2*inch, 1*inch, 0.8*inch, 0.8*inch, 1*inch, 1.2*inch])
-    t2.setStyle(TableStyle([
+    # --- 4. SECTION SITUATION DE LA COLLECTE (CIRCUITS) ---
+    elements.append(Paragraph("II. SITUATION DE LA COLLECTE", section_style))
+    
+    # Récupérer les circuits détaillés
+    try:
+        df_circuits = execute_query(QUERY_CIRCUITS_DETAILS, (start_date, end_date))
+    except:
+        df_circuits = None
+    
+    if df_circuits is not None and not df_circuits.empty:
+        # Filtrer par unité communale
+        df_circuits = df_circuits[df_circuits['unite_communale_nom'] == uc_name] if 'unite_communale_nom' in df_circuits.columns else df_circuits
+        
+        # Construire les données du tableau
+        data_circuits = [["N°", "Circuit", "N° Camion", "Début", "Fin", "Durée", "Poids (T)", "Observations"]]
+        for idx, row in df_circuits.iterrows():
+            no = str(idx + 1)
+            circuit_nom = str(row.get('nom_circuit', ''))
+            camion = str(row.get('camion', ''))
+            heure_debut = str(row.get('heure_debut', ''))[:5]
+            heure_fin = str(row.get('heure_fin', ''))[:5]
+            duree = str(row.get('duree_collecte', ''))
+            poids = str(round(float(row.get('poids_circuit', 0)), 2)) if row.get('poids_circuit') else "N/D"
+            status = str(row.get('status_libelle', ''))
+            
+            data_circuits.append([no, circuit_nom, camion, heure_debut, heure_fin, duree, poids, status])
+    else:
+        data_circuits = [
+            ["N°", "Circuit", "N° Camion", "Début", "Fin", "Durée", "Poids (T)", "Observations"],
+            ["1", "Pas de données", "-", "-", "-", "-", "-", "-"]
+        ]
+    
+    t_circuits = Table(data_circuits, colWidths=[0.5*inch, 2*inch, 0.9*inch, 0.7*inch, 0.7*inch, 0.7*inch, 0.8*inch, 1.5*inch])
+    t_circuits.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2C3E50")),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('ALIGN', (1, 1), (1, -1), 'LEFT'),
+        ('ALIGN', (7, 1), (7, -1), 'LEFT'),
+        ('FONTSIZE', (0, 0), (-1, -1), 7),
         ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, LIGHT_GREY])
     ]))
-    elements.append(t2)
+    elements.append(t_circuits)
+    elements.append(Spacer(1, 0.15*inch))
 
-    # --- 5. SECTION MOBILIER URBAIN ---
-    elements.append(Paragraph("III. MOBILIER URBAIN (BACS)", section_style))
-    data_m = [
-        ["Type", "Nombre Total", "Levés", "Taux de réalisation"],
-        ["Points de Regroupement (PRN)", "19", "19", "100%"],
-        ["Points Propres (PP)", "19", "19", "100%"],
-        ["Bacs de rue", "42", "42", "100%"]
+    # --- 5. SECTION CAISSES POLY-BENNE ---
+    elements.append(Paragraph("III. COLLECTE - CAISSES POLY-BENNE", section_style))
+    data_caisses = [
+        ["Indicateurs", "Valeur"],
+        ["Nombre sites de caisse", "0"],
+        ["Nombre de caisses", "0"],
+        ["Nombre de caisse levées", "0"],
+        ["Poids collecté", "0"]
     ]
-    t3 = Table(data_m, colWidths=[2.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
-    t3.setStyle(TableStyle([
+    t_caisses = Table(data_caisses, colWidths=[3.5*inch, 3.5*inch])
+    t_caisses.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), ACCENT_GOLD),
         ('TEXTCOLOR', (0, 0), (-1, 0), PRIMARY_BLUE),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
         ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, LIGHT_GREY])
     ]))
-    elements.append(t3)
+    elements.append(t_caisses)
 
     # --- 6. DIFFICULTÉS ET SOLUTIONS ---
     elements.append(Spacer(1, 0.2*inch))
     obs_data = [
         [Paragraph("<b>DIFFICULTÉS RENCONTRÉES</b>", normal_style), Paragraph("<b>RECOMMANDATIONS / SOLUTIONS</b>", normal_style)],
-        [Paragraph("• 9 agents invalides au balayage.<br/>• Panne du camion 3701.", normal_style),
-         Paragraph("• Recrutement de renforts.<br/>• Maintenance urgente garage.", normal_style)]
+        [Paragraph("• A compléter selon contexte opérationnel", normal_style),
+         Paragraph("• Actions correctives à mettre en place", normal_style)]
     ]
     t_obs = Table(obs_data, colWidths=[3.5*inch, 3.5*inch])
     t_obs.setStyle(TableStyle([
