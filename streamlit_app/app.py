@@ -2289,9 +2289,12 @@ def main():
                     st.dataframe(df_period, use_container_width=True, hide_index=True)
 
                     # Export PDF Helado
-                    # Récupérer l'unité communale sélectionnée
-                    uc_names = st.session_state.get('selected_unites_communales', ['Dakar'])
-                    uc_name = uc_names[0] if uc_names else 'Dakar'
+                    # Récupérer l'unité communale depuis le dataframe
+                    if 'unite_communale_nom' in df_period.columns and not df_period.empty:
+                        uc_names = df_period['unite_communale_nom'].unique()
+                        uc_name = uc_names[0] if len(uc_names) > 0 else 'Dakar'
+                    else:
+                        uc_name = 'Dakar'
                     
                     pdf_data = generate_period_report_pdf(report_type, uc_name, start_date, end_date, df_period)
                     st.download_button(
