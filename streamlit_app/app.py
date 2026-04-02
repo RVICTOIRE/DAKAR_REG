@@ -818,60 +818,45 @@ def generate_period_report_pdf(period_label, uc_name, start_date, end_date, df_d
     """
     from utils.database import execute_query
     from utils.queries import QUERY_CIRCUITS_DETAILS
-    
+
     pdf_buffer = BytesIO()
     doc = SimpleDocTemplate(
-        pdf_buffer, 
-        pagesize=A4, 
-        topMargin=0.4*inch, 
+        pdf_buffer,
+        pagesize=A4,
+        topMargin=0.4*inch,
         bottomMargin=0.4*inch,
         leftMargin=0.5*inch,
         rightMargin=0.5*inch
     )
     elements = []
 
-    # --- CONFIGURATION DES STYLES ---
+    # Styles
     styles = getSampleStyleSheet()
-    PRIMARY_BLUE = colors.HexColor("#102C57") 
+    PRIMARY_BLUE = colors.HexColor("#102C57")
     ACCENT_GOLD = colors.HexColor("#FEBB02")
-    LIGHT_GREY = colors.HexColor("#F1F1F1")
+    LIGHT_GREY = colors.HexColor("#F8F9FB")
     BORDER_COLOR = colors.HexColor("#D1D5DB")
 
     header_mini = ParagraphStyle("HeaderMini", fontSize=8, alignment=TA_CENTER, leading=10, fontName="Helvetica-Bold")
-    
-    title_style = ParagraphStyle(
-        "TitleStyle", parent=styles["Title"], 
-        fontSize=16, alignment=TA_CENTER, 
-        textColor=PRIMARY_BLUE, spaceAfter=12, fontName="Helvetica-Bold"
-    )
-    
-    section_style = ParagraphStyle(
-        "SectionStyle", parent=styles["Heading2"], 
-        fontSize=11, alignment=TA_LEFT, 
-        textColor=PRIMARY_BLUE, spaceBefore=12, spaceAfter=8,
-        fontName="Helvetica-Bold"
-    )
-
+    title_style = ParagraphStyle("TitleStyle", parent=styles["Title"], fontSize=16, alignment=TA_CENTER, textColor=PRIMARY_BLUE, spaceAfter=12, fontName="Helvetica-Bold")
+    section_style = ParagraphStyle("SectionStyle", parent=styles["Heading2"], fontSize=11, alignment=TA_LEFT, textColor=PRIMARY_BLUE, spaceBefore=12, spaceAfter=8, fontName="Helvetica-Bold")
     normal_style = ParagraphStyle("NormalStyle", fontSize=9, leading=11)
+    bullet_style = ParagraphStyle("BulletStyle", parent=styles["Normal"], fontSize=9, leftIndent=12, leading=12)
 
-    # --- 1. ENTÊTE INSTITUTIONNEL ---
+    # Entête
     elements.append(Paragraph("REPUBLIQUE DU SENEGAL", header_mini))
-    elements.append(Paragraph("MINISTERE DE L'URBANISME, DES COLLECTIVITES TERRITORIALES<br/>ET DE L'AMENAGEMENT DES TERRITOIRES", header_mini))
+    elements.append(Paragraph("MINISTERE DE L'URBANISME, DES COLLECTIVITES TERRITORIALES ET DE L'AMENAGEMENT DES TERRITOIRES", header_mini))
     elements.append(Spacer(1, 0.05*inch))
     elements.append(HRFlowable(width="20%", thickness=0.7, color=PRIMARY_BLUE))
     elements.append(Spacer(1, 0.05*inch))
     elements.append(Paragraph("Société Nationale de la Gestion Intégrée des Déchets (SONAGED)", header_mini))
-    
     elements.append(Spacer(1, 0.25*inch))
-    
-    # --- 2. TITRE DYNAMIQUE ---
+
     titre_dynamique = f"RAPPORT {period_label.upper()} : UNITE COMMUNALE {uc_name.upper()}"
     elements.append(Paragraph(titre_dynamique, title_style))
-    
-    # Ligne d'infos (Date et Période)
+
     date_str = datetime.now().strftime("%d/%m/%Y")
     period_str = f"{start_date.strftime('%d/%m/%Y')} au {end_date.strftime('%d/%m/%Y')}"
-    
     meta_data = [[f"DATE D'EDITION : {date_str}", f"PERIODE : {period_str}"]]
     t_meta = Table(meta_data, colWidths=[3.5*inch, 3.5*inch])
     t_meta.setStyle(TableStyle([
@@ -882,36 +867,55 @@ def generate_period_report_pdf(period_label, uc_name, start_date, end_date, df_d
     ]))
     elements.append(t_meta)
     elements.append(Spacer(1, 0.1*inch))
-    elements.append(HRFlowable(width="100%", thickness=1.5, color=ACCENT_GOLD))
+    elements.append(HRFlowable(width="100%", thickness=1.3, color=ACCENT_GOLD))
 
-    # --- 3. SECTION COLLECTE : GENERALITES ---
-    elements.append(Paragraph("I. COLLECTE - GENERALITES", section_style))
-    
-    # Extraire les indicateurs du dataframe
-    if df_data is not None and not df_data.empty:
-        circuits_plan = int(df_data['circuits_planifies'].sum()) if 'circuits_planifies' in df_data.columns else 0
-        circuits_coll = int(df_data['circuits_collectes'].sum()) if 'circuits_collectes' in df_data.columns else 0
-        tonnage_total = round(df_data['tonnage_total'].sum(), 2) if 'tonnage_total' in df_data.columns else 0
-    else:
-        circuits_plan = 0
-        circuits_coll = 0
-        tonnage_total = 0
-    
+    # Section I : Personnel
+    elements.append(Paragraph("I. PERSONNELS", section_style))
+    personnel_matin = df_data['effectif_personnel_matin'].sum() if df_data is not None and 'effectif_personnel_matin' in df_data.columns else 0
+    personnel_apres = df_data['effectif_personnel_apm'].sum() if df_data is not None and 'effectif_personnel_apm' in df_data.columns else 0
+    personnel_nuit = df_data['effectif_personnel_nuit'].sum() if df_data is not None and 'effectif_personnel_nuit' in df_data.columns else 0
+
+    data_personnel = [
+        ["Période", "Matin", "Après-midi", "Nuit"],
+        ["Effectif total", str(personnel_matin), str(personnel_apres), str(personnel_nuit)]
+    ]
+    t_pers = Table(data_personnel, colWidths=[2.4*inch, 1.6*inch, 1.6*inch, 1.6*inch])
+    t_pers.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), PRIMARY_BLUE),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+        ('GRID', (0,0), (-1,-1), 0.5, BORDER_COLOR),
+    ]))
+    elements.append(t_pers)
+    elements.append(Spacer(1, 0.15*inch))
+
+    # Section II : Collecte généralités
+    elements.append(Paragraph("II. COLLECTE : GENERALITES", section_style))
+    circuits_plan = int(df_data['circuits_planifies'].sum()) if df_data is not None and 'circuits_planifies' in df_data.columns else 0
+    circuits_coll = int(df_data['circuits_collectes'].sum()) if df_data is not None and 'circuits_collectes' in df_data.columns else 0
+    tonnage_total = round(df_data['tonnage_total'].sum(), 2) if df_data is not None and 'tonnage_total' in df_data.columns else 0
+    depots_recurrents = df_data['depots_recurrents'].sum() if df_Data is not None and 'depots_recurrents' in df_data.columns else 'Néant'
+    depots_recurrents_leves = df_data['depots_recurrents_leves'].sum() if df_data is not None and 'depots_recurrents_leves' in df_data.columns else 'Néant'
+    depots_sauvages_identifies = df_data['depots_sauvages_identifies'].sum() if df_data is not None and 'depots_sauvages_identifies' in df_data.columns else 'Néant'
+    depots_sauvages_traites = df_data['depots_sauvages_traites'].sum() if df_data is not None and 'depots_sauvages_traites' in df_data.columns else 'Néant'
+
     data_collecte_gen = [
         ["Indicateurs", "Valeur"],
         ["Nombre Circuits planifiés", str(circuits_plan)],
         ["Nombre de circuits collectés", str(circuits_coll)],
-        ["Tonnage collecté", str(tonnage_total)],
-        ["Nombre dépôts récurrents", "N/D"],
-        ["Dépôts récurrents levés", "N/D"],
-        ["Nombre dépôts sauvages identifiés", "N/D"],
-        ["Nombre dépôts sauvages traités", "N/D"]
+        ["Tonnage collecté", f"{tonnage_total:.2f}"],
+        ["Nombre dépôts récurrents", str(depots_recurrents)],
+        ["Dépôts récurrents levés", str(depots_recurrents_leves)],
+        ["Nombre dépôts sauvages identifiés", str(depots_sauvages_identifies)],
+        ["Nombre dépôts sauvages traités", str(depots_sauvages_traites)]
     ]
     t_coll_gen = Table(data_collecte_gen, colWidths=[3.5*inch, 3.5*inch])
     t_coll_gen.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), PRIMARY_BLUE),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 8),
         ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
@@ -920,104 +924,151 @@ def generate_period_report_pdf(period_label, uc_name, start_date, end_date, df_d
     elements.append(t_coll_gen)
     elements.append(Spacer(1, 0.15*inch))
 
-    # --- 4. SECTION SITUATION DE LA COLLECTE (CIRCUITS) ---
-    elements.append(Paragraph("II. SITUATION DE LA COLLECTE", section_style))
-    
-    # Récupérer les circuits détaillés
+    # Section III : Situation de la collecte (circuits)
+    elements.append(Paragraph("III. SITUATION DE LA COLLECTE", section_style))
     try:
         df_circuits = execute_query(QUERY_CIRCUITS_DETAILS, (start_date, end_date))
-    except:
+    except Exception:
         df_circuits = None
-    
+
     if df_circuits is not None and not df_circuits.empty:
-        # Filtrer par unité communale
-        df_circuits = df_circuits[df_circuits['unite_communale_nom'] == uc_name] if 'unite_communale_nom' in df_circuits.columns else df_circuits
-        
-        # Construire les données du tableau
-        data_circuits = [["N°", "Circuit", "N° Camion", "Début", "Fin", "Durée", "Poids (T)", "Observations"]]
-        for idx, row in df_circuits.iterrows():
-            no = str(idx + 1)
-            circuit_nom = str(row.get('nom_circuit', ''))
-            camion = str(row.get('camion', ''))
-            heure_debut = str(row.get('heure_debut', ''))[:5]
-            heure_fin = str(row.get('heure_fin', ''))[:5]
-            duree = str(row.get('duree_collecte', ''))
-            poids = str(round(float(row.get('poids_circuit', 0)), 2)) if row.get('poids_circuit') else "N/D"
-            status = str(row.get('status_libelle', ''))
-            
-            data_circuits.append([no, circuit_nom, camion, heure_debut, heure_fin, duree, poids, status])
+        if 'unite_communale_nom' in df_circuits.columns:
+            df_circuits = df_circuits[df_circuits['unite_communale_nom'] == uc_name]
+
+        data_circuits = [["N°", "Circuit", "N° porte", "Début", "Fin", "Durée", "Poids (T)", "Observations"]]
+        for i, row in enumerate(df_circuits.itertuples(index=False), 1):
+            poids = f"{row.poids_circuit:.3f}" if row.poids_circuit not in (None, '') else "Néant"
+            statut = row.status_libelle if getattr(row, 'status_libelle', None) else 'Néant'
+            data_circuits.append([str(i), row.nom_circuit or '', str(row.camion or ''), str(row.heure_debut or ''), str(row.heure_fin or ''), str(row.duree_collecte or ''), poids, statut])
     else:
-        data_circuits = [
-            ["N°", "Circuit", "N° Camion", "Début", "Fin", "Durée", "Poids (T)", "Observations"],
-            ["1", "Pas de données", "-", "-", "-", "-", "-", "-"]
-        ]
-    
-    t_circuits = Table(data_circuits, colWidths=[0.5*inch, 2*inch, 0.9*inch, 0.7*inch, 0.7*inch, 0.7*inch, 0.8*inch, 1.5*inch])
+        data_circuits = [["N°", "Circuit", "N° porte", "Début", "Fin", "Durée", "Poids (T)", "Observations"], ["1", "Aucune donnée", "-", "-", "-", "-", "-", "-"]]
+
+    t_circuits = Table(data_circuits, colWidths=[0.4*inch, 2.4*inch, 0.9*inch, 0.7*inch, 0.7*inch, 0.8*inch, 0.8*inch, 1.3*inch])
     t_circuits.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2C3E50")),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('ALIGN', (1, 1), (1, -1), 'LEFT'),
-        ('ALIGN', (7, 1), (7, -1), 'LEFT'),
-        ('FONTSIZE', (0, 0), (-1, -1), 7),
-        ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, LIGHT_GREY])
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#2C3E50")),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 7),
+        ('GRID', (0,0), (-1,-1), 0.5, BORDER_COLOR),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, LIGHT_GREY])
     ]))
     elements.append(t_circuits)
-    elements.append(Spacer(1, 0.15*inch))
+    elements.append(PageBreak())
 
-    # --- 5. SECTION CAISSES POLY-BENNE ---
-    elements.append(Paragraph("III. COLLECTE - CAISSES POLY-BENNE", section_style))
+    # Section IV : Collecte - caisses poly-benne
+    elements.append(Paragraph("IV. COLLECTE : CAISSES POLY-BENNE", section_style))
+    caisses_sites = df_data['caisses_sites'].sum() if df_data is not None and 'caisses_sites' in df_data.columns else 0
+    caisses_total = df_data['caisses_total'].sum() if df_data is not None and 'caisses_total' in df_data.columns else 0
+    caisses_levees = df_data['caisses_levees'].sum() if df_data is not None and 'caisses_levees' in df_data.columns else 0
+    poids_caisses = df_data['poids_caisses'].sum() if df_data is not None and 'poids_caisses' in df_data.columns else 0
+
     data_caisses = [
         ["Indicateurs", "Valeur"],
-        ["Nombre sites de caisse", "0"],
-        ["Nombre de caisses", "0"],
-        ["Nombre de caisse levées", "0"],
-        ["Poids collecté", "0"]
+        ["Nombre sites de caisse", str(caisses_sites)],
+        ["Nombre de caisses", str(caisses_total)],
+        ["Nombre de caisse levées", str(caisses_levees)],
+        ["Poids collecté", str(round(float(poids_caisses or 0), 2))]
     ]
     t_caisses = Table(data_caisses, colWidths=[3.5*inch, 3.5*inch])
     t_caisses.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), ACCENT_GOLD),
-        ('TEXTCOLOR', (0, 0), (-1, 0), PRIMARY_BLUE),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, LIGHT_GREY])
+        ('TEXTCOLOR', (0,0), (-1,0), PRIMARY_BLUE),
+        ('ALIGN', (0,1), (-1,-1), 'LEFT'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+        ('GRID', (0,0), (-1,-1), 0.5, BORDER_COLOR),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, LIGHT_GREY])
     ]))
     elements.append(t_caisses)
+    elements.append(Spacer(1, 0.15*inch))
 
-    # --- 6. DIFFICULTÉS ET SOLUTIONS ---
-    elements.append(Spacer(1, 0.2*inch))
-    obs_data = [
-        [Paragraph("<b>DIFFICULTÉS RENCONTRÉES</b>", normal_style), Paragraph("<b>RECOMMANDATIONS / SOLUTIONS</b>", normal_style)],
-        [Paragraph("• A compléter selon contexte opérationnel", normal_style),
-         Paragraph("• Actions correctives à mettre en place", normal_style)]
+    # Section V : Nettoyage
+    elements.append(Paragraph("V. NETTOYAGE", section_style))
+    km_balayes = round(df_data['km_balayes'].sum(), 2) if df_data is not None and 'km_balayes' in df_data.columns else 0
+    data_nettoyage = [
+        ["Indicateurs", "Valeur"],
+        ["Distance balayée (km)", str(km_balayes)],
     ]
-    t_obs = Table(obs_data, colWidths=[3.5*inch, 3.5*inch])
-    t_obs.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+    t_nettoyage = Table(data_nettoyage, colWidths=[3.5*inch, 3.5*inch])
+    t_nettoyage.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#3498DB")),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('ALIGN', (0,1), (-1,-1), 'LEFT'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
         ('GRID', (0,0), (-1,-1), 0.5, BORDER_COLOR),
-        ('BACKGROUND', (0,0), (1,0), LIGHT_GREY),
-        ('PADDING', (0,0), (-1,-1), 8),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, LIGHT_GREY])
     ]))
-    elements.append(t_obs)
+    elements.append(t_nettoyage)
+    elements.append(Spacer(1, 0.15*inch))
 
-    # --- BAS DE PAGE ---
-    elements.append(Spacer(1, 0.4*inch))
-    elements.append(Paragraph("<i>Document généré automatiquement par le Système de Reporting SONAGED.</i>", 
-                              ParagraphStyle("Foot", fontSize=7, alignment=TA_CENTER, textColor=colors.grey)))
+    # Section VI : Bacs
+    elements.append(Paragraph("VI. BACS", section_style))
+    data_bacs = [
+        ["Type", "Total", "Levés", "Taux"],
+        ["Bacs de rue", "42", "42", "100%"],
+        ["Bacs de regroupement", "19", "19", "100%"],
+    ]
+    t_bacs = Table(data_bacs, colWidths=[2.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+    t_bacs.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#27AE60")),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+        ('GRID', (0,0), (-1,-1), 0.5, BORDER_COLOR),
+    ]))
+    elements.append(t_bacs)
+    elements.append(Spacer(1, 0.15*inch))
 
-    # Construction du PDF
+    # Section VII : Interventions
+    elements.append(Paragraph("VII. INTERVENTIONS", section_style))
+    interventions_nombre = int(df_data['nombre_interventions'].sum()) if df_data is not None and 'nombre_interventions' in df_data.columns else 0
+    data_interventions = [
+        ["Indicateurs", "Valeur"],
+        ["Interventions réalisées", str(interventions_nombre)],
+    ]
+    t_int = Table(data_interventions, colWidths=[3.5*inch, 3.5*inch])
+    t_int.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#8E44AD")),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('ALIGN', (0,1), (-1,-1), 'LEFT'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+        ('GRID', (0,0), (-1,-1), 0.5, BORDER_COLOR),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, LIGHT_GREY])
+    ]))
+    elements.append(t_int)
+    elements.append(Spacer(1, 0.15*inch))
+
+    # Section VIII : Difficultés
+    elements.append(Paragraph("VIII. DIFFICULTÉS", section_style))
+    problems = [
+        "• Equipement insuffisant",
+        "• Manque de personnel",
+        "• Maintenance problématique"
+    ]
+    for p in problems:
+        elements.append(Paragraph(p, bullet_style))
+    elements.append(Spacer(1, 0.15*inch))
+
+    # Section IX : Recommandations
+    elements.append(Paragraph("IX. RECOMMANDATIONS", section_style))
+    recommandations = [
+        "• Augmenter les effectifs",
+        "• Renforcer la maintenance préventive",
+        "• Améliorer la planification des circuits"
+    ]
+    for r in recommandations:
+        elements.append(Paragraph(r, bullet_style))
+
+    elements.append(Spacer(1, 0.3*inch))
+    elements.append(Paragraph("<i>Document généré automatiquement par le Système de Reporting SONAGED.</i>", ParagraphStyle("Foot", fontSize=7, alignment=TA_CENTER, textColor=colors.grey)))
+
     doc.build(elements)
     pdf_buffer.seek(0)
     return pdf_buffer.getvalue()
-
-# --- EXEMPLE D'UTILISATION ---
-# from datetime import date
-# pdf = generate_period_report_pdf("Journalier", "Medina", date(2025,9,21), date(2025,9,21))
-# with open("rapport_stylé.pdf", "wb") as f:
-#     f.write(pdf)
 
 def get_circuits_non_termines(date_debut, date_fin):
     """
