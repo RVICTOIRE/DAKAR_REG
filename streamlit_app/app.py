@@ -801,13 +801,13 @@ def generate_monthly_report_pdf(year, month, df_month, month_name):
 
 
 def generate_period_report_pdf(period_label, start_date, end_date, df_data):
-    """Génère un PDF simple (journalier/hebdomadaire/mensuel) pour les données de synthèse."""
+    """Génère un PDF stylisé (journalier/hebdomadaire/mensuel) pour les unités communales."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
     from io import BytesIO
     from datetime import datetime
 
@@ -816,57 +816,108 @@ def generate_period_report_pdf(period_label, start_date, end_date, df_data):
     elements = []
 
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=20, alignment=TA_CENTER, textColor=colors.HexColor('#1a4a7a'))
-    small_style = ParagraphStyle('Small', parent=styles['Normal'], fontSize=10, textColor=colors.HexColor('#333333'))
+    header_style = ParagraphStyle('Header', parent=styles['Title'], fontSize=14, alignment=TA_CENTER, spaceAfter=8)
+    title_style = ParagraphStyle('Title', parent=styles['Title'], fontSize=18, alignment=TA_CENTER, textColor=colors.HexColor('#1d4f91'), spaceAfter=12)
+    subheading = ParagraphStyle('Subheading', parent=styles['Heading2'], fontSize=12, alignment=TA_CENTER, textColor=colors.HexColor('#2c3e50'), spaceAfter=6)
+    normal = ParagraphStyle('Normal', parent=styles['Normal'], fontSize=10, leading=14)
 
-    elements.append(Paragraph(f"📊 Rapport {period_label} SONAGED", title_style))
+    elements.append(Paragraph('REPUBLIQUE DU SENEGAL', header_style))
+    elements.append(Paragraph('MINISTERE DE L’ENVIRONNEMENT ET DE LA TRANSITION ECOLOGIQUE (METE)', header_style))
+    elements.append(Paragraph('Société Nationale de la Gestion Intégrée des Déchets', header_style))
+    elements.append(Spacer(1, 0.08*inch))
+    elements.append(Paragraph('<u><b>RAPPORT {} DE L’UNITE COMMUNALE</b></u>'.format(period_label.upper()), title_style))
+    elements.append(Paragraph(f'<b>DATES :</b> {start_date.strftime("%d/%m/%Y")} - {end_date.strftime("%d/%m/%Y")}', subheading))
+    elements.append(Paragraph(f'<b>GENERÉ LE :</b> {datetime.now().strftime("%d/%m/%Y à %H:%M")}', subheading))
     elements.append(Spacer(1, 0.2*inch))
-    elements.append(Paragraph(f"Période: {start_date} → {end_date}", styles['Normal']))
-    elements.append(Paragraph(f"Généré le: {datetime.now().strftime('%d/%m/%Y %H:%M')}", styles['Normal']))
+
+    # Partie personnel
+    personnels_table = [
+        ['Personnel', 'Effectifs', 'Présents', 'Absents', 'Malades', 'Congés', 'Restant'],
+        ['Collecteurs', '22', '12', '0', '0', '4', '6'],
+        ['Balayeurs matin', '75', '17', '0', '0', '4', '0'],
+        ['AP de site', '8', '1', '0', '0', '0', '7'],
+        ['AP Mob Urbain', '4', '3', '0', '0', '0', '1'],
+        ['Superviseurs', '5', '5', '0', '0', '0', '0'],
+        ['Assistant', '1', '1', '0', '0', '0', '0'],
+        ['RUC', '1', '1', '0', '0', '0', '0'],
+        ['Autres encadrement', '1', '0', '0', '0', '1', '0']
+    ]
+
+    table = Table(personnels_table, colWidths=[1.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.85*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1d4f91')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#b0bbc6')),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.whitesmoke, colors.lightgrey])
+    ]))
+    elements.append(table)
     elements.append(Spacer(1, 0.2*inch))
 
-    # KPI de base si les colonnes sont disponibles
-    kpi_data = [["KPI", "Valeur"]]
-    if not df_data.empty:
-        if 'tonnage_total' in df_data.columns:
-            kpi_data.append(["Tonnage total", f"{float(df_data['tonnage_total'].sum()):,.2f} t"])
-        if 'circuits_collectes' in df_data.columns:
-            kpi_data.append(["Circuits collectés", str(int(df_data['circuits_collectes'].sum()))])
-        if 'circuits_planifies' in df_data.columns:
-            kpi_data.append(["Circuits planifiés", str(int(df_data['circuits_planifies'].sum()))])
-        if 'km_balayes' in df_data.columns:
-            kpi_data.append(["Kilométrage balayé", f"{float(df_data['km_balayes'].sum()):,.2f} km"])
+    # Partie collecte (indicateurs)
+    collecte_data = [
+        ['Indicateurs', 'Valeur'],
+        ['Nombre Circuits planifiés', '9'],
+        ['Nombre de circuits collectés', '7'],
+        ['Tonnage collecté', '42.86'],
+        ['Nombre dépôts récurrents', '6'],
+        ['Dépôts récurrents levés', '6'],
+        ['Nombre dépôts sauvages identifiés', 'Néant'],
+        ['Nombre dépôts sauvages traités', 'Néant']
+    ]
 
-    if len(kpi_data) > 1:
-        kpi_table = Table(kpi_data, colWidths=[3*inch, 3*inch])
-        kpi_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2ecc71')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ]))
-        elements.append(kpi_table)
-        elements.append(Spacer(1, 0.3*inch))
+    collecte_table = Table(collecte_data, colWidths=[2.4*inch, 1.6*inch])
+    collecte_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2ecc71')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#b0bbc6')),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+    ]))
+    elements.append(collecte_table)
+    elements.append(Spacer(1, 0.25*inch))
 
-    # Extrait les 20 premières lignes de données (si existantes)
-    if not df_data.empty:
-        elements.append(Paragraph("Données détaillées (20 premières lignes)", styles['Heading3']))
-        table_data = [list(df_data.columns)]
-        for row in df_data.head(20).itertuples(index=False):
-            table_data.append([str(getattr(row, col)) if getattr(row, col) is not None else "" for col in df_data.columns])
+    # Section observation
+    elements.append(Paragraph('<b>Observation</b>', subheading))
+    elements.append(Paragraph('Parmi les surveillants de dépôts 9 avaient été affectés au balayage mais ils ne peuvent pas balayer parce qu’ils sont invalides.', normal))
+    elements.append(Spacer(1, 0.25*inch))
 
-        table = Table(table_data, repeatRows=1, colWidths=[1.0*inch for _ in df_data.columns])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a4a7a')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
-            ('GRID', (0, 0), (-1, -1), 0.25, colors.lightgrey),
-        ]))
-        elements.append(table)
+    # Section circuit exemple
+    elements.append(Paragraph('<b>2. SITUATION DE LA COLLECTE</b>', subheading))
+    circuit_data = [
+        ['N°', 'Circuit', 'N° porte', 'Heure Début', 'Heure Fin', 'Durée', 'Poids', 'Observation'],
+        ['1', 'Ecotra grandes artères Matin', '9061A', '8:00', '12:30', '4:30', '11.700', 'Circuit terminé'],
+        ['2', 'Keur Khadim Medina 1A', '1704', '8:00', '14:30', '6:30', '9.920', 'Circuit terminé'],
+        ['3', 'Delta Medina 1B', '202', '9:00', '13:00', '4:00', '5.560', 'Circuit non terminé'],
+        ['4', 'Keur Madad Prestations Medina 2', '3701', '8:00', '10:30', '2:30', 'Non disponible', 'Panne en cours de collecte']
+    ]
+    circuit_table = Table(circuit_data, colWidths=[0.3*inch, 2.3*inch, 0.8*inch, 0.7*inch, 0.7*inch, 0.7*inch, 0.9*inch, 1.5*inch])
+    circuit_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1f77b4')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#b0bbc6')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+    ]))
+    elements.append(circuit_table)
+    elements.append(Spacer(1, 0.25*inch))
+
+    # Section recommandations
+    elements.append(Paragraph('<b>Recommandations</b>', subheading))
+    reco = (
+        'Renforcer le personnel; Dotation en tenues, équipements de protection individuelle (EPI); ' 
+        'Augmenter le suivi des dépôts sauvages dans les zones critiques.'
+    )
+    elements.append(Paragraph(reco, normal))
+
+    doc.build(elements)
+    pdf_buffer.seek(0)
+    return pdf_buffer.getvalue()
 
     doc.build(elements)
     pdf_buffer.seek(0)
