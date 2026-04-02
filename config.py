@@ -28,6 +28,6 @@ SQL_FILES = {
 # Configuration KoboToolbox
 # ----------------------------
 KOBO_CONFIG = {
-    "api_key": "625acaaa5294d5a5bb447958e276eabf4f636932",
-    "form_uid": "aAKLQa7aKQuJZ6wANBa3iM"
+    "api_key": os.getenv('KOBO_API_KEY', "625acaaa5294d5a5bb447958e276eabf4f636932"),
+    "form_uid": os.getenv('KOBO_FORM_UID', "aAKLQa7aKQuJZ6wANBa3iM")
 }
