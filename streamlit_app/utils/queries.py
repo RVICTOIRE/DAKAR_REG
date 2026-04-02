@@ -62,7 +62,7 @@ QUERY_CIRCUITS_DETAILS = """
         poids_circuit,
         status_libelle
     FROM v_collection_circuits_details
-    WHERE date_rapport >= %s
+    WHERE date_rapport >= %s AND date_rapport <= %s
     ORDER BY date_rapport DESC, ordre
 """
 
@@ -80,7 +80,7 @@ QUERY_PERSONNEL_MATIN = """
     FROM personnel_matin pm
     JOIN daily_reports dr ON pm.daily_report_id = dr.id
     JOIN categories_personnel cp ON pm.categorie_id = cp.id
-    WHERE dr.date_rapport >= %s
+    WHERE dr.date_rapport >= %s AND dr.date_rapport <= %s
     ORDER BY dr.date_rapport DESC, cp.libelle
 """
 
@@ -97,7 +97,7 @@ QUERY_PERSONNEL_APM = """
     FROM personnel_apres_midi pam
     JOIN daily_reports dr ON pam.daily_report_id = dr.id
     JOIN categories_personnel cp ON pam.categorie_id = cp.id
-    WHERE dr.date_rapport >= %s
+    WHERE dr.date_rapport >= %s AND dr.date_rapport <= %s
     ORDER BY dr.date_rapport DESC, cp.libelle
 """
 
@@ -114,7 +114,7 @@ QUERY_PERSONNEL_NUIT = """
     FROM personnel_nuit pn
     JOIN daily_reports dr ON pn.daily_report_id = dr.id
     JOIN categories_personnel cp ON pn.categorie_id = cp.id
-    WHERE dr.date_rapport >= %s
+    WHERE dr.date_rapport >= %s AND dr.date_rapport <= %s
     ORDER BY dr.date_rapport DESC, cp.libelle
 """
 
