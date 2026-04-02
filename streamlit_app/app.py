@@ -798,119 +798,194 @@ def generate_monthly_report_pdf(year, month, df_month, month_name):
 
 # =====================================================
 # FONCTIONS DE GÉNÉRATION PDF GÉNÉRIQUES
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, HRFlowable
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from io import BytesIO
+from datetime import datetime
 
 
-def generate_period_report_pdf(period_label, start_date, end_date, df_data):
-    """Generate complete PDF report (daily/weekly/monthly)."""
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-    from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
-    from io import BytesIO
-    from datetime import datetime
-
+def generate_period_report_pdf(period_label, start_date, end_date, df_data=None):
+    """Génère un rapport PDF stylisé pour la SONAGED (Unité Médina)."""
+    
     pdf_buffer = BytesIO()
-    doc = SimpleDocTemplate(pdf_buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    # Marges plus élégantes
+    doc = SimpleDocTemplate(
+        pdf_buffer, 
+        pagesize=A4, 
+        topMargin=0.4*inch, 
+        bottomMargin=0.4*inch,
+        leftMargin=0.5*inch,
+        rightMargin=0.5*inch
+    )
     elements = []
 
+    # --- CONFIGURATION DES STYLES ---
     styles = getSampleStyleSheet()
-    h = ParagraphStyle("H", parent=styles["Title"], fontSize=12, alignment=TA_CENTER, spaceAfter=6)
-    t = ParagraphStyle("T", parent=styles["Title"], fontSize=16, alignment=TA_CENTER, textColor=colors.HexColor("#1d4f91"), spaceAfter=10)
-    s = ParagraphStyle("S", parent=styles["Heading2"], fontSize=11, alignment=TA_LEFT, textColor=colors.HexColor("#1d4f91"), spaceAfter=8)
-    n = ParagraphStyle("N", parent=styles["Normal"], fontSize=9, leading=12)
+    
+    # Couleurs thématiques
+    PRIMARY_BLUE = colors.HexColor("#102C57") # Bleu Marine Institutionnel
+    ACCENT_GOLD = colors.HexColor("#FEBB02")  # Or/Jaune SONAGED
+    LIGHT_GREY = colors.HexColor("#F1F1F1")
+    BORDER_COLOR = colors.HexColor("#D1D5DB")
 
-    # HEADER
-    elements.append(Paragraph("REPUBLIQUE DU SENEGAL", h))
-    elements.append(Paragraph("MINISTERE ENVIRONNEMENT ET TRANSITION ECOLOGIQUE", h))
-    elements.append(Paragraph("Societe Nationale de la Gestion Integree des Dechets", h))
+    title_style = ParagraphStyle(
+        "TitleStyle", parent=styles["Title"], 
+        fontSize=18, alignment=TA_CENTER, 
+        textColor=PRIMARY_BLUE, spaceAfter=20, fontName="Helvetica-Bold"
+    )
+    
+    header_style = ParagraphStyle(
+        "HeaderStyle", fontSize=9, alignment=TA_CENTER, 
+        leading=11, textColor=colors.black, fontName="Helvetica-Bold"
+    )
+    
+    section_style = ParagraphStyle(
+        "SectionStyle", parent=styles["Heading2"], 
+        fontSize=12, alignment=TA_LEFT, 
+        textColor=PRIMARY_BLUE, spaceBefore=15, spaceAfter=10,
+        fontName="Helvetica-Bold", borderPadding=5,
+    )
+
+    normal_style = ParagraphStyle("NormalStyle", fontSize=9, leading=12)
+    obs_style = ParagraphStyle("ObsStyle", fontSize=8, leading=10, leftIndent=10, italic=True)
+
+    # --- ENTÊTE INSTITUTIONNEL ---
+    elements.append(Paragraph("REPUBLIQUE DU SENEGAL", header_style))
+    elements.append(Paragraph("MINISTERE DE L'URBANISME, DES COLLECTIVITES TERRITORIALES<br/>ET DE L'AMENAGEMENT DES TERRITOIRES", header_style))
     elements.append(Spacer(1, 0.1*inch))
-    elements.append(Paragraph("<u><b>RAPPORT " + period_label.upper() + "</b></u>", t))
-    elements.append(Paragraph("<b>PERIODE:</b> " + start_date.strftime("%d/%m/%Y") + " - " + end_date.strftime("%d/%m/%Y"), s))
-    elements.append(Paragraph("<b>DATE:</b> " + datetime.now().strftime("%d/%m/%Y"), s))
-    elements.append(Spacer(1, 0.15*inch))
-
-    # 1. PERSONNELS MATIN
-    elements.append(Paragraph("<b>1. PERSONNELS (MATIN)</b>", s))
-    p1 = [["Personnel", "Total", "Present", "Absent", "Malade", "Conge", "Repos"], ["Collecteurs", "22", "12", "0", "0", "4", "6"], ["Balayeurs", "75", "17", "0", "0", "4", "0"], ["Superviseurs", "5", "5", "0", "0", "0", "0"]]
-    t1 = Table(p1, colWidths=[1.5*inch, 0.65*inch, 0.65*inch, 0.65*inch, 0.65*inch, 0.65*inch, 0.65*inch])
-    t1.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1d4f91")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 8), ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#b0bbc6")), ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.whitesmoke, colors.white])]))
-    elements.append(t1)
+    elements.append(HRFlowable(width="30%", thickness=1, color=PRIMARY_BLUE))
     elements.append(Spacer(1, 0.1*inch))
-
-    # 2. PERSONNELS APRES-MIDI
-    elements.append(Paragraph("<b>2. PERSONNELS (APRES-MIDI)</b>", s))
-    p2 = [["Personnel", "Total", "Present", "Absent", "Malade", "Conge", "Repos"], ["Balayeurs", "12", "10", "0", "0", "0", "2"], ["Superviseurs", "1", "1", "0", "0", "0", "0"]]
-    t2 = Table(p2, colWidths=[1.5*inch, 0.65*inch, 0.65*inch, 0.65*inch, 0.65*inch, 0.65*inch, 0.65*inch])
-    t2.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2ecc71")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 8), ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#b0bbc6")), ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.whitesmoke, colors.white])]))
-    elements.append(t2)
-    elements.append(Spacer(1, 0.15*inch))
-
-    # 3. COLLECTE GENERALITES
-    elements.append(Paragraph("<b>3. COLLECTE - GENERALITES</b>", s))
-    p3 = [["Indicateur", "Valeur"], ["Circuits Planifies", "9"], ["Circuits Collectes", "7"], ["Tonnage", "42.86 t"], ["Sites Recurrents", "6"]]
-    t3 = Table(p3, colWidths=[2.8*inch, 1.8*inch])
-    t3.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f77b4")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("FONTSIZE", (0, 0), (-1, -1), 9), ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#b0bbc6"))]))
-    elements.append(t3)
-    elements.append(Spacer(1, 0.15*inch))
-
-    # 4. CIRCUITS COLLECTE
-    elements.append(Paragraph("<b>4. CIRCUITS - COLLECTE</b>", s))
-    p4 = [["N", "Circuit", "Camion", "Debut", "Fin", "Duree", "Poids", "Statut"], ["1", "Arteres Principales", "9061A", "08:00", "12:30", "4:30", "11.7 t", "Termine"], ["2", "Zone Medina", "1704", "08:00", "14:30", "6:30", "9.9 t", "Termine"]]
-    t4 = Table(p4, colWidths=[0.35*inch, 1.8*inch, 0.6*inch, 0.55*inch, 0.55*inch, 0.55*inch, 0.75*inch, 0.9*inch])
-    t4.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f77b4")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#b0bbc6")), ("FONTSIZE", (0, 0), (-1, -1), 7)]))
-    elements.append(t4)
-    elements.append(Spacer(1, 0.15*inch))
-
-    # 5. BACS COLLECTE
-    elements.append(Paragraph("<b>5. BACS - COLLECTE</b>", s))
-    p5 = [["Indicateur", "Valeur"], ["Sites", "0"], ["Bacs Total", "0"], ["Leves", "0"]]
-    t5 = Table(p5, colWidths=[2.8*inch, 1.8*inch])
-    t5.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f39c12")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("FONTSIZE", (0, 0), (-1, -1), 9), ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#b0bbc6"))]))
-    elements.append(t5)
-    elements.append(Spacer(1, 0.15*inch))
-
-    # 6. NETTOYAGE RUES
-    elements.append(Paragraph("<b>6. NETTOYAGE - RUES</b>", s))
-    p6 = [["Indicateur", "Valeur"], ["Planifie", "Arteres Principales"], ["Balaye", "Arteres Principales"], ["Desable km", "0 km"]]
-    t6 = Table(p6, colWidths=[2.8*inch, 1.8*inch])
-    t6.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3498db")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("FONTSIZE", (0, 0), (-1, -1), 9), ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#b0bbc6"))]))
-    elements.append(t6)
-    elements.append(Spacer(1, 0.15*inch))
-
-    # 7. BACS RUES
-    elements.append(Paragraph("<b>7. BACS - RUES</b>", s))
-    p7 = [["Type", "Nombre", "Total", "Leves", "Statut"], ["Type A", "4", "19", "19", "Termine"], ["Type B", "4", "19", "19", "Termine"], ["Bacs", "8", "42", "42", "Termine"]]
-    t7 = Table(p7, colWidths=[1.2*inch, 1.2*inch, 1.2*inch, 1.2*inch, 1*inch])
-    t7.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#27ae60")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("FONTSIZE", (0, 0), (-1, -1), 9), ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#b0bbc6"))]))
-    elements.append(t7)
-    elements.append(PageBreak())
-
-    # 8. INTERVENTIONS SPECIALES
-    elements.append(Paragraph("<b>8. INTERVENTIONS - SPECIALES</b>", s))
-    p8 = [["Indicateur", "Valeur"], ["Personnel", "0"], ["Equipement", "0"], ["Sites", "0"]]
-    t8 = Table(p8, colWidths=[2.8*inch, 1.8*inch])
-    t8.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#8e44ad")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("FONTSIZE", (0, 0), (-1, -1), 9), ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#b0bbc6"))]))
-    elements.append(t8)
-    elements.append(Spacer(1, 0.15*inch))
-
-    # 9. DIFFICULTES
-    elements.append(Paragraph("<b>9. DIFFICULTES</b>", s))
-    elements.append(Paragraph("- Equipement insuffisant", n))
-    elements.append(Paragraph("- Manque de personnel", n))
-    elements.append(Paragraph("- Problemes de maintenance", n))
-    elements.append(Spacer(1, 0.15*inch))
-
-    # 10. RECOMMANDATIONS
-    elements.append(Paragraph("<b>10. RECOMMANDATIONS</b>", s))
-    elements.append(Paragraph("- Augmenter l'effectif", n))
-    elements.append(Paragraph("- Fournir les EPI", n))
-    elements.append(Paragraph("- Ameliorer la maintenance", n))
-
+    elements.append(Paragraph("Société Nationale de la Gestion Intégrée des Déchets (SONAGED)", header_style))
+    
     elements.append(Spacer(1, 0.3*inch))
-    elements.append(Paragraph("<i>Auto-generated from SONAGED Dashboard</i>", n))
+    
+    # Titre du Rapport avec badge de date
+    elements.append(Paragraph(f"RAPPORT JOURNALIER : UNITE MEDINA", title_style))
+    
+    # Infos de période dans un petit tableau pour le style
+    info_data = [
+        [Paragraph(f"<b>PÉRIODE :</b> {start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')}", normal_style),
+         Paragraph(f"<b>GÉNÉRÉ LE :</b> {datetime.now().strftime('%d/%m/%Y %H:%M')}", normal_style)]
+    ]
+    info_table = Table(info_data, colWidths=[3.5*inch, 3.5*inch])
+    info_table.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'LEFT')]))
+    elements.append(info_table)
+    elements.append(Spacer(1, 0.2*inch))
 
+    # --- 1. SITUATION DU PERSONNEL ---
+    elements.append(Paragraph("1. SITUATION DU PERSONNEL (MATIN)", section_style))
+    p1 = [
+        ["Personnel", "Effectif", "Présents", "Absents", "Malades", "Congés", "Repos"],
+        ["Collecteurs", "22", "12", "0", "0", "4", "6"],
+        ["Balayeurs", "75", "17", "0", "0", "4", "0"],
+        ["AP de site", "8", "1", "0", "0", "0", "7"],
+        ["Superviseurs", "5", "5", "0", "0", "0", "0"],
+        ["Encadrement", "3", "3", "0", "0", "0", "0"]
+    ]
+    t1 = Table(p1, colWidths=[1.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch])
+    t1.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), PRIMARY_BLUE),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, LIGHT_GREY]),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+    ]))
+    elements.append(t1)
+    elements.append(Paragraph("<i>Note: 9 surveillants invalides affectés au balayage ne peuvent pas exercer.</i>", obs_style))
+
+    # --- 2. SITUATION DE LA COLLECTE ---
+    elements.append(Paragraph("2. SITUATION DE LA COLLECTE", section_style))
+    
+    # Tableau de synthèse rapide
+    col_summary = [
+        ["Circuits Planifiés", "9", "Tonnage Collecté", "42.86 T"],
+        ["Circuits Réalisés", "7", "Dépôts Sauvages", "Néant"]
+    ]
+    t_sum = Table(col_summary, colWidths=[1.8*inch, 1.2*inch, 1.8*inch, 1.2*inch])
+    t_sum.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (0,-1), LIGHT_GREY),
+        ('BACKGROUND', (2,0), (2,-1), LIGHT_GREY),
+        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
+        ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
+        ('GRID', (0,0), (-1,-1), 0.5, BORDER_COLOR),
+        ('ALIGN', (1,0), (1,-1), 'CENTER'),
+        ('ALIGN', (3,0), (3,-1), 'CENTER'),
+    ]))
+    elements.append(t_sum)
+    elements.append(Spacer(1, 0.15*inch))
+
+    # Détails des circuits
+    elements.append(Paragraph("Détail des rotations par circuit", normal_style))
+    p4 = [
+        ["Circuit", "Camion", "Début", "Fin", "Durée", "Poids (kg)", "Statut"],
+        ["Ecotra Artères", "9061A", "08:00", "12:30", "4:30", "11 700", "Terminé"],
+        ["Keur Khadim", "1704", "08:00", "14:30", "6:30", "9 920", "Terminé"],
+        ["Delta Medina", "202", "09:00", "13:00", "4:00", "5 560", "Partiel"],
+        ["Medina 2", "3701", "08:00", "10:30", "2:30", "---", "Panne"]
+    ]
+    t4 = Table(p4, colWidths=[1.5*inch, 0.8*inch, 0.7*inch, 0.7*inch, 0.7*inch, 1*inch, 1*inch])
+    t4.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#2C3E50")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('ALIGN', (2,0), (-1,-1), 'CENTER'),
+    ]))
+    elements.append(t4)
+
+    # --- 3. MOBILIER URBAIN (BACS) ---
+    elements.append(Paragraph("3. MOBILIER URBAIN & BACS", section_style))
+    p7 = [
+        ["Type de Mobilier", "Nombre Sites", "Total Bacs", "Bacs Levés", "Statut"],
+        ["Points de Regroupement", "4", "19", "19", "100%"],
+        ["Points Propres", "4", "19", "19", "100%"],
+        ["Bacs de rue", "8", "42", "42", "100%"]
+    ]
+    t7 = Table(p7, colWidths=[2*inch, 1.2*inch, 1.2*inch, 1.2*inch, 1.2*inch])
+    t7.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), ACCENT_GOLD),
+        ('TEXTCOLOR', (0, 0), (-1, 0), PRIMARY_BLUE),
+        ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('GRID', (0, 0), (-1, -1), 0.5, BORDER_COLOR),
+    ]))
+    elements.append(t7)
+
+    # --- 4. DIFFICULTÉS & RECOMMANDATIONS ---
+    elements.append(Spacer(1, 0.2*inch))
+    
+    # On crée deux colonnes pour Difficultés et Recommandations
+    diff_data = [
+        [Paragraph("<b>⚠️ DIFFICULTÉS</b>", section_style), Paragraph("<b>💡 RECOMMANDATIONS</b>", section_style)],
+        [Paragraph("• Manque de matériel lourd<br/>• Effectifs réduits (invalidité)<br/>• Pannes mécaniques récurrentes", normal_style),
+         Paragraph("• Renforcer le personnel actif<br/>• Dotation urgente en EPI et tenues<br/>• Maintenance préventive des camions", normal_style)]
+    ]
+    t_diff = Table(diff_data, colWidths=[3.5*inch, 3.5*inch])
+    t_diff.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 20),
+    ]))
+    elements.append(t_diff)
+
+    # Pied de page (Signatures)
+    elements.append(Spacer(1, 0.5*inch))
+    sig_data = [["Le Responsable d'Unité (RUC)", "Le Superviseur de Zone"]]
+    t_sig = Table(sig_data, colWidths=[3.5*inch, 3.5*inch])
+    t_sig.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,-1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,-1), 10),
+    ]))
+    elements.append(t_sig)
+
+    # Génération
     doc.build(elements)
     pdf_buffer.seek(0)
     return pdf_buffer.getvalue()
