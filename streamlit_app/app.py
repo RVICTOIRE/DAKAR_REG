@@ -896,7 +896,7 @@ def generate_period_report_pdf(period_label, uc_name, start_date, end_date, df_d
     circuits_plan = int(df_data['circuits_planifies'].sum()) if df_data is not None and 'circuits_planifies' in df_data.columns else 0
     circuits_coll = int(df_data['circuits_collectes'].sum()) if df_data is not None and 'circuits_collectes' in df_data.columns else 0
     tonnage_total = round(df_data['tonnage_total'].sum(), 2) if df_data is not None and 'tonnage_total' in df_data.columns else 0
-    depots_recurrents = df_data['depots_recurrents'].sum() if df_Data is not None and 'depots_recurrents' in df_data.columns else 'Néant'
+    depots_recurrents = df_data['depots_recurrents'].sum() if df_data is not None and 'depots_recurrents' in df_data.columns else 'Néant'
     depots_recurrents_leves = df_data['depots_recurrents_leves'].sum() if df_data is not None and 'depots_recurrents_leves' in df_data.columns else 'Néant'
     depots_sauvages_identifies = df_data['depots_sauvages_identifies'].sum() if df_data is not None and 'depots_sauvages_identifies' in df_data.columns else 'Néant'
     depots_sauvages_traites = df_data['depots_sauvages_traites'].sum() if df_data is not None and 'depots_sauvages_traites' in df_data.columns else 'Néant'
