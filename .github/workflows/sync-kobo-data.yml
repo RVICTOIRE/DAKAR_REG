@@ -37,6 +37,10 @@ jobs:
           KOBO_FORM_UID: ${{ secrets.KOBO_FORM_UID }}
         run: |
           echo "📊 Import depuis Kobo..."
+          echo "DB_HOST: $DB_HOST"
+          echo "DB_NAME: $DB_NAME"
+          echo "KOBO_API_KEY défini: $(if [ -n "$KOBO_API_KEY" ]; then echo 'OUI'; else echo 'NON'; fi)"
+          echo "KOBO_FORM_UID défini: $(if [ -n "$KOBO_FORM_UID" ]; then echo 'OUI'; else echo 'NON'; fi)"
           python import_kobo_via_api.py
       
       - name: 🔄 Transformer les données (RAW → MART)
@@ -48,6 +52,8 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           echo "🔄 Transformation en cours..."
+          echo "DB_HOST: $DB_HOST"
+          echo "DB_NAME: $DB_NAME"
           python transform_raw_to_mart.py
       
       - name: ✅ Succès - Données synchronisées
