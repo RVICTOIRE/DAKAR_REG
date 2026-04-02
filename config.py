@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent
 
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
-    'port': int(os.getenv('DB_PORT', '5432')),
+    'port': int(os.getenv('DB_PORT') or '5432'),
     'dbname': os.getenv('DB_NAME', 'neondb'),
     'user': os.getenv('DB_USER', 'postgres'),
     'password': os.getenv('DB_PASSWORD', ''),
