@@ -852,7 +852,7 @@ def generate_period_report_pdf(period_label, uc_name, start_date, end_date, df_d
     elements.append(Paragraph("Société Nationale de la Gestion Intégrée des Déchets (SONAGED)", header_mini))
     elements.append(Spacer(1, 0.25*inch))
 
-    titre_dynamique = f"RAPPORT {period_label.upper()} : UNITE COMMUNALE {uc_name.upper()}"
+    titre_dynamique = f"RAPPORT {period_label.upper()} : UNITE COMMUNALE {str(uc_name).upper()}"
     elements.append(Paragraph(titre_dynamique, title_style))
 
     date_str = datetime.now().strftime("%d/%m/%Y")
@@ -892,7 +892,7 @@ def generate_period_report_pdf(period_label, uc_name, start_date, end_date, df_d
     elements.append(Spacer(1, 0.15*inch))
 
     # Section II : Collecte généralités
-    elements.append(Paragraph("II. COLLECTE : GENERALITES", section_style))
+    elements.append(Paragraph("II. COLLECTE : GÉNÉRALITÉS", section_style))
     circuits_plan = int(df_data['circuits_planifies'].sum()) if df_data is not None and 'circuits_planifies' in df_data.columns else 0
     circuits_coll = int(df_data['circuits_collectes'].sum()) if df_data is not None and 'circuits_collectes' in df_data.columns else 0
     tonnage_total = round(df_data['tonnage_total'].sum(), 2) if df_data is not None and 'tonnage_total' in df_data.columns else 0
@@ -935,13 +935,13 @@ def generate_period_report_pdf(period_label, uc_name, start_date, end_date, df_d
         if 'unite_communale_nom' in df_circuits.columns:
             df_circuits = df_circuits[df_circuits['unite_communale_nom'] == uc_name]
 
-        data_circuits = [["N°", "Circuit", "N° porte", "Début", "Fin", "Durée", "Poids (T)", "Observations"]]
+        data_circuits = [["N°", "Circuit", "N° porte", "Heure Début", "Heure Fin", "Durée", "Poids", "Observations"]]
         for i, row in enumerate(df_circuits.itertuples(index=False), 1):
             poids = f"{row.poids_circuit:.3f}" if row.poids_circuit not in (None, '') else "Néant"
             statut = row.status_libelle if getattr(row, 'status_libelle', None) else 'Néant'
             data_circuits.append([str(i), row.nom_circuit or '', str(row.camion or ''), str(row.heure_debut or ''), str(row.heure_fin or ''), str(row.duree_collecte or ''), poids, statut])
     else:
-        data_circuits = [["N°", "Circuit", "N° porte", "Début", "Fin", "Durée", "Poids (T)", "Observations"], ["1", "Aucune donnée", "-", "-", "-", "-", "-", "-"]]
+        data_circuits = [["N°", "Circuit", "N° porte", "Heure Début", "Heure Fin", "Durée", "Poids", "Observations"], ["1", "Aucune donnée", "-", "-", "-", "-", "-", "-"]]
 
     t_circuits = Table(data_circuits, colWidths=[0.4*inch, 2.4*inch, 0.9*inch, 0.7*inch, 0.7*inch, 0.8*inch, 0.8*inch, 1.3*inch])
     t_circuits.setStyle(TableStyle([

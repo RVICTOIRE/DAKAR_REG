@@ -12,6 +12,19 @@ jobs:
   sync-data:
     runs-on: ubuntu-latest
     
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
     steps:
       - name: 📥 Cloner le repository
         uses: actions/checkout@v4
@@ -26,13 +39,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
+      - name: 🗄️ Configurer la base de données
+        env:
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_NAME: sonaged_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+        run: |
+          echo "🗄️ Configuration de la base de données..."
+          python setup_database.py
+      
       - name: 🔗 Importer les données depuis Kobo API
         env:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_NAME: sonaged_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
           KOBO_API_KEY: ${{ secrets.KOBO_API_KEY }}
           KOBO_FORM_UID: ${{ secrets.KOBO_FORM_UID }}
         run: |
@@ -45,11 +69,11 @@ jobs:
       
       - name: 🔄 Transformer les données (RAW → MART)
         env:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_NAME: sonaged_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
         run: |
           echo "🔄 Transformation en cours..."
           echo "DB_HOST: $DB_HOST"

@@ -2,7 +2,7 @@ import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from config import DB_CONFIG, SQL_FILES
 
-DB_NAME = DB_CONFIG["database"]
+DB_NAME = DB_CONFIG["dbname"]
 
 
 def create_database():
